@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  // Unity WebGL 파일을 위한 헤더 설정
   async headers() {
     return [
       {
@@ -22,7 +20,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // .unityweb 파일을 위한 Content-Type 헤더
       {
         source: "/game/:path*.unityweb",
         headers: [
@@ -42,9 +39,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Unity WebGL 파일 확장자 지원
   webpack: (config, { isServer }) => {
-    // 클라이언트 사이드에서만 적용
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -55,7 +50,6 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Turbopack 설정 (Unity WebGL은 webpack 사용)
   turbopack: {},
 };
 

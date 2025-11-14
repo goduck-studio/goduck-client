@@ -17,7 +17,6 @@ export const games: GameInfo[] = [
     buildFolder: "Build",
     buildName: "GODUCK",
   },
-  // 추가 게임은 여기에 추가
 ];
 
 export function getGameById(id: string): GameInfo | undefined {
