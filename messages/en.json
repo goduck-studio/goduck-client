@@ -9,7 +9,7 @@
     "error": "An error occurred while loading the game."
   },
   "home": {
-    "title": "GODUCK",
+    "title": "Game list",
     "subtitle": "Play Unity games in your web browser"
   },
   "game": {
@@ -37,4 +37,3 @@
     }
   }
 }
-
