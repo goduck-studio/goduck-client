@@ -400,16 +400,15 @@ export function UnityLoader({
     }
 
     if (!isLandscape && isFullscreen) {
-      setShowRotateMessage(true);
+      // iOS에서는 세로로 돌아오면 자동으로 전체화면 해제
+      if (isIOS()) {
+        setIsFullscreen(false);
+        setShowRotateMessage(false);
+      } else {
+        setShowRotateMessage(true);
+      }
     } else {
       setShowRotateMessage(false);
-    }
-
-    // 가로 모드일 때 포커스 유지
-    if (isLandscape && isFullscreen && canvasRef.current) {
-      setTimeout(() => {
-        canvasRef.current?.focus();
-      }, 100);
     }
   }, [isFullscreen]);
 
@@ -736,8 +735,9 @@ export function UnityLoader({
               display: isReady && !error ? "block" : "none",
               maxWidth: "100%",
               maxHeight: "100%",
-              width: isFullscreen ? "100%" : "100%",
+              // 전체화면일 때는 세로(높이)를 기준으로 맞추고 가로는 비율에 맞게 자동
               height: isFullscreen ? "100%" : "100%",
+              width: isFullscreen ? "auto" : "100%",
             }}
             onMouseDown={(e) => {
               if (isFullscreen) {
