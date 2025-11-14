@@ -733,10 +733,12 @@ export function UnityLoader({
             className="outline-none"
             style={{
               display: isReady && !error ? "block" : "none",
+              // 16:9 비율 유지
+              aspectRatio: "16 / 9",
               maxWidth: "100%",
               maxHeight: "100%",
-              // 전체화면일 때는 가로를 기준으로 꽉 채우고 세로는 비율에 맞게 자동 (위아래 일부 크롭)
               width: isFullscreen ? "100%" : "100%",
+              // 전체화면에서는 높이를 자동으로 두고, 컨테이너(뷰포트)에 맞춰 16:9로 스케일
               height: isFullscreen ? "auto" : "100%",
             }}
             onMouseDown={(e) => {
