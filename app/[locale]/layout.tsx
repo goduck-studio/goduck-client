@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { locales } from "@/i18n";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { Header } from "@/components/header";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -52,13 +52,10 @@ export default async function LocaleLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
-          <div className="fixed top-4 right-4 z-50">
-            <LocaleSwitcher />
-          </div>
+          <Header />
           {children}
         </NextIntlClientProvider>
       </body>
     </html>
   );
 }
-
