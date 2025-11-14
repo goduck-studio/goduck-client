@@ -124,6 +124,35 @@ export function UnityLoader({
   const unityInstanceRef = useRef<UnityInstance | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const isIOS = (): boolean => {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  };
+
+  const getDeviceType = useCallback((): "mobile" | "desktop" => {
+    // iOS (iPhone, iPad 등)
+    if (isIOS()) {
+      return "mobile";
+    }
+
+    // 안드로이드 및 기타 모바일 브라우저
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobileUA = /android|webos|blackberry|iemobile|opera mini/.test(ua);
+
+    if (isMobileUA) {
+      return "mobile";
+    }
+
+    // 폴백: 화면 크기로 판단 (폭이 좁으면 모바일로 간주)
+    if (window.innerWidth <= 768) {
+      return "mobile";
+    }
+
+    return "desktop";
+  }, []);
+
   useEffect(() => {
     let script: HTMLScriptElement | null = null;
 
@@ -266,6 +295,22 @@ export function UnityLoader({
               );
 
               unityInstanceRef.current = instance;
+
+              // 디바이스 타입(JS) -> Unity WebGL 로 전달
+              try {
+                const deviceType = getDeviceType(); // "mobile" | "desktop"
+                instance.SendMessage(
+                  "DeviceManager", // Unity 내 GameObject 이름
+                  "SetDeviceType", // public 메서드 이름 (string 매개변수 1개)
+                  deviceType
+                );
+              } catch (bridgeError) {
+                console.warn(
+                  "[UnityLoader] Failed to send device type to Unity:",
+                  bridgeError
+                );
+              }
+
               setIsReady(true);
               setIsLoading(false);
             } catch (unityError) {
@@ -317,7 +362,7 @@ export function UnityLoader({
         } catch {}
       }
     };
-  }, [buildUrl, buildFolder, buildName, t]);
+  }, [buildUrl, buildFolder, buildName, t, getDeviceType]);
 
   const getFullscreenElement = (): Element | null => {
     const doc = document as DocumentWithFullscreen;
@@ -374,13 +419,6 @@ export function UnityLoader({
     } else if (doc.msExitFullscreen) {
       await doc.msExitFullscreen();
     }
-  };
-
-  const isIOS = (): boolean => {
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
   };
 
   const checkOrientation = useCallback((): void => {
