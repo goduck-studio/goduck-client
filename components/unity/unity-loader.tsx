@@ -552,8 +552,12 @@ export function UnityLoader({
   }, []);
 
   return (
-    <Card className={className}>
-      <CardHeader>
+    <Card
+      className={`${className} ${
+        isFullscreen ? "border-none shadow-none" : ""
+      }`}
+    >
+      <CardHeader className={isFullscreen ? "hidden" : ""}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
           <div className="flex-1">
             <CardTitle>{t("game.title")}</CardTitle>
@@ -616,7 +620,7 @@ export function UnityLoader({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className={isFullscreen ? "p-0 h-screen w-screen" : ""}>
         <div
           ref={containerRef}
           id="unity-container"
@@ -661,8 +665,34 @@ export function UnityLoader({
               </p>
             </div>
           )}
+          {isFullscreen && !isLoading && !error && (
+            <Button
+              onClick={handleFullscreen}
+              variant="outline"
+              size="sm"
+              className="absolute top-4 right-4 z-30 bg-white/10 hover:bg-white/20 text-white border-white/30"
+            >
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              <span className="hidden sm:inline">
+                {t("game.exitFullscreen")}
+              </span>
+              <span className="sm:hidden">종료</span>
+            </Button>
+          )}
           {showRotateMessage && isFullscreen && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 text-white z-20 p-4 animate-pulse">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 text-white z-20 p-4 animate-pulse pointer-events-none">
               <div className="mb-4">
                 <svg
                   className="w-16 h-16 sm:w-20 sm:h-20 mx-auto"
