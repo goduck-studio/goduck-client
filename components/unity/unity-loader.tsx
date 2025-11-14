@@ -337,20 +337,29 @@ export function UnityLoader({
     window.location.reload();
   };
 
-  const requestFullscreen = async (element: HTMLElement): Promise<void> => {
+  const requestFullscreen = async (element: HTMLElement): Promise<boolean> => {
     const el = element as HTMLElementWithFullscreen;
 
-    if (element.requestFullscreen) {
-      await element.requestFullscreen();
-    } else if (el.webkitRequestFullscreen) {
-      await el.webkitRequestFullscreen();
-    } else if (el.mozRequestFullScreen) {
-      await el.mozRequestFullScreen();
-    } else if (el.msRequestFullscreen) {
-      await el.msRequestFullscreen();
-    } else {
-      throw new Error("전체화면 API를 지원하지 않는 브라우저입니다.");
+    try {
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+        return true;
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+        return true;
+      } else if (el.mozRequestFullScreen) {
+        await el.mozRequestFullScreen();
+        return true;
+      } else if (el.msRequestFullscreen) {
+        await el.msRequestFullscreen();
+        return true;
+      }
+    } catch {
+      // 전체화면 API 호출 실패
     }
+
+    // 전체화면 API를 지원하지 않는 경우 false 반환
+    return false;
   };
 
   const exitFullscreen = async (): Promise<void> => {
@@ -399,7 +408,14 @@ export function UnityLoader({
       const isFullscreen = !!getFullscreenElement();
 
       if (!isFullscreen) {
-        await requestFullscreen(containerRef.current);
+        const fullscreenSupported = await requestFullscreen(
+          containerRef.current
+        );
+
+        // 전체화면 API를 지원하지 않는 경우에도 전체화면 모드로 전환
+        if (!fullscreenSupported) {
+          setIsFullscreen(true);
+        }
 
         // 전체화면이 완전히 활성화된 후 가로 방향으로 잠금
         setTimeout(async () => {
@@ -411,22 +427,17 @@ export function UnityLoader({
               await orientation.lock("landscape");
               setShowRotateMessage(false);
             } catch {
-              // 화면 방향 잠금 실패 시 (iOS 등)
-              // 가로 모드로 돌리라는 메시지 표시
-              const ios = isIOS();
-              if (ios) {
-                setShowRotateMessage(true);
-                // 5초 후 메시지 자동 숨김
-                setTimeout(() => setShowRotateMessage(false), 5000);
-              }
+              // 화면 방향 잠금 실패 시 가로 모드로 돌리라는 메시지 표시
+              setShowRotateMessage(true);
+              // 5초 후 메시지 자동 숨김
+              setTimeout(() => setShowRotateMessage(false), 5000);
             }
           } else {
             // Screen Orientation API를 지원하지 않는 경우
-            const ios = isIOS();
-            if (ios) {
-              setShowRotateMessage(true);
-              setTimeout(() => setShowRotateMessage(false), 5000);
-            }
+            // 가로 모드인지 확인하고 메시지 표시
+            checkOrientation();
+            setShowRotateMessage(true);
+            setTimeout(() => setShowRotateMessage(false), 5000);
           }
         }, 300);
       } else {
@@ -442,13 +453,19 @@ export function UnityLoader({
           }
         }
         setShowRotateMessage(false);
-        await exitFullscreen();
+
+        // 전체화면 API를 지원하는 경우에만 exitFullscreen 호출
+        const fullscreenElement = getFullscreenElement();
+        if (fullscreenElement) {
+          await exitFullscreen();
+        } else {
+          setIsFullscreen(false);
+        }
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "전체화면 전환에 실패했습니다.";
-      setError(errorMessage);
-      setTimeout(() => setError(null), 3000);
+    } catch {
+      // 전체화면 전환 실패 시에도 전체화면 모드로 전환
+      setIsFullscreen(true);
+      checkOrientation();
     }
   };
 
@@ -571,10 +588,17 @@ export function UnityLoader({
         <div
           ref={containerRef}
           id="unity-container"
-          className={`relative bg-black rounded-lg overflow-hidden w-full ${
+          className={`relative bg-black overflow-hidden w-full ${
             height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]"
-          } ${isFullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}
-          style={{ width, ...(height ? { height } : {}) }}
+          } ${
+            isFullscreen
+              ? "fixed inset-0 z-50 rounded-none h-screen w-screen"
+              : "rounded-lg"
+          }`}
+          style={{
+            width: isFullscreen ? "100vw" : width,
+            height: isFullscreen ? "100vh" : height || undefined,
+          }}
         >
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10 p-4">
