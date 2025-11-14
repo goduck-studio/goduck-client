@@ -387,51 +387,29 @@ export function UnityLoader({
     const screenWithOrientation = screen as ScreenWithOrientation;
     const orientation = screenWithOrientation.orientation;
 
+    let isLandscape = false;
+
     if (orientation) {
-      const isLandscape =
+      isLandscape =
         orientation.angle === 90 ||
         orientation.angle === 270 ||
         orientation.type?.includes("landscape");
-
-      if (!isLandscape && isFullscreen) {
-        setShowRotateMessage(true);
-      } else {
-        setShowRotateMessage(false);
-        // 가로 모드로 전환되면 포커스 유지
-        if (isFullscreen && canvasRef.current) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 100);
-        }
-      }
     } else {
       // Screen Orientation API가 없는 경우 window 크기로 판단
-      const isLandscape = window.innerWidth > window.innerHeight;
-      if (!isLandscape && isFullscreen) {
-        setShowRotateMessage(true);
-      } else {
-        setShowRotateMessage(false);
-        // 가로 모드로 전환되면 포커스 유지
-        if (isFullscreen && canvasRef.current) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 100);
-        }
-      }
+      isLandscape = window.innerWidth > window.innerHeight;
     }
 
-    // Unity canvas 크기 조정
-    if (canvasRef.current && unityInstanceRef.current && isFullscreen) {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (container) {
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+    if (!isLandscape && isFullscreen) {
+      setShowRotateMessage(true);
+    } else {
+      setShowRotateMessage(false);
+    }
 
-        // Unity canvas의 크기를 container에 맞게 조정
-        canvas.style.width = `${containerWidth}px`;
-        canvas.style.height = `${containerHeight}px`;
-      }
+    // 가로 모드일 때 포커스 유지
+    if (isLandscape && isFullscreen && canvasRef.current) {
+      setTimeout(() => {
+        canvasRef.current?.focus();
+      }, 100);
     }
   }, [isFullscreen]);
 
@@ -518,34 +496,15 @@ export function UnityLoader({
     if (isFullscreen) {
       checkOrientation();
 
-      // 전체화면 모드 진입 시 포커스 설정
-      if (canvasRef.current) {
-        setTimeout(() => {
-          canvasRef.current?.focus();
-        }, 200);
-      }
-
       const screenWithOrientation = screen as ScreenWithOrientation;
       const orientation = screenWithOrientation.orientation;
 
       const handleOrientationChange = () => {
         checkOrientation();
-        // 방향 변경 시 포커스 재설정
-        if (canvasRef.current) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 300);
-        }
       };
 
       const handleResize = () => {
         checkOrientation();
-        // 리사이즈 시 포커스 재설정
-        if (canvasRef.current && isFullscreen) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 100);
-        }
       };
 
       if (orientation) {
@@ -554,43 +513,12 @@ export function UnityLoader({
       window.addEventListener("resize", handleResize);
       window.addEventListener("orientationchange", handleResize);
 
-      // 포커스가 다른 곳으로 이동하면 canvas로 다시 포커스
-      const handleFocus = () => {
-        if (
-          isFullscreen &&
-          canvasRef.current &&
-          document.activeElement !== canvasRef.current
-        ) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 50);
-        }
-      };
-
-      const handleBlur = () => {
-        if (isFullscreen && canvasRef.current) {
-          setTimeout(() => {
-            canvasRef.current?.focus();
-          }, 100);
-        }
-      };
-
-      window.addEventListener("focus", handleFocus);
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.addEventListener("blur", handleBlur);
-      }
-
       return () => {
         if (orientation) {
           orientation.removeEventListener("change", handleOrientationChange);
         }
         window.removeEventListener("resize", handleResize);
         window.removeEventListener("orientationchange", handleResize);
-        window.removeEventListener("focus", handleFocus);
-        if (canvas) {
-          canvas.removeEventListener("blur", handleBlur);
-        }
       };
     } else {
       setShowRotateMessage(false);
@@ -693,21 +621,27 @@ export function UnityLoader({
           )}
         </div>
       </CardHeader>
-      <CardContent className={isFullscreen ? "p-0 h-screen w-screen" : ""}>
+      <CardContent className={isFullscreen ? "p-0" : ""}>
         <div
           ref={containerRef}
           id="unity-container"
-          className={`relative bg-black overflow-hidden w-full ${
-            height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]"
-          } ${isFullscreen ? "fixed inset-0 z-50 rounded-none" : "rounded-lg"}`}
-          style={{
-            width: isFullscreen ? "100vw" : width,
-            height: isFullscreen ? "100vh" : height || undefined,
-            maxWidth: isFullscreen ? "100vw" : undefined,
-            maxHeight: isFullscreen ? "100vh" : undefined,
-            minWidth: isFullscreen ? "100vw" : undefined,
-            minHeight: isFullscreen ? "100vh" : undefined,
-          }}
+          className={`bg-black ${
+            isFullscreen
+              ? "fixed inset-0 z-50 flex items-center justify-center"
+              : "relative rounded-lg overflow-hidden w-full " +
+                (height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]")
+          }`}
+          style={
+            isFullscreen
+              ? {
+                  width: "100vw",
+                  height: "100vh",
+                }
+              : {
+                  width,
+                  height: height || undefined,
+                }
+          }
         >
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10 p-4">
@@ -797,13 +731,13 @@ export function UnityLoader({
             width={1280}
             height={720}
             tabIndex={isFullscreen ? 0 : -1}
-            className="w-full h-full object-contain outline-none"
+            className="outline-none"
             style={{
               display: isReady && !error ? "block" : "none",
-              width: isFullscreen ? "100%" : "100%",
-              height: isFullscreen ? "100%" : "100%",
               maxWidth: "100%",
               maxHeight: "100%",
+              width: isFullscreen ? "100%" : "100%",
+              height: isFullscreen ? "100%" : "100%",
             }}
             onMouseDown={(e) => {
               if (isFullscreen) {
