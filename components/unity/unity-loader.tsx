@@ -735,9 +735,9 @@ export function UnityLoader({
               display: isReady && !error ? "block" : "none",
               maxWidth: "100%",
               maxHeight: "100%",
-              // 전체화면일 때는 세로(높이)를 기준으로 맞추고 가로는 비율에 맞게 자동
-              height: isFullscreen ? "100%" : "100%",
-              width: isFullscreen ? "auto" : "100%",
+              // 전체화면일 때는 가로를 기준으로 꽉 채우고 세로는 비율에 맞게 자동 (위아래 일부 크롭)
+              width: isFullscreen ? "100%" : "100%",
+              height: isFullscreen ? "auto" : "100%",
             }}
             onMouseDown={(e) => {
               if (isFullscreen) {
