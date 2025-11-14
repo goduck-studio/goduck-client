@@ -3,8 +3,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getGameById } from "@/lib/games";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
-export default function GoduckGamePage() {
+export default async function GoduckGamePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations();
   const game = getGameById("goduck");
 
   if (!game) {
@@ -15,14 +22,20 @@ export default function GoduckGamePage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link href="/">
+          <Link href={`/${locale}`}>
             <Button variant="outline" className="mb-4">
-              ← 게임 목록으로
+              ← {t("common.gameList")}
             </Button>
           </Link>
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2">{game.title}</h1>
-            <p className="text-muted-foreground">{game.description}</p>
+            <h1 className="text-4xl font-bold mb-2">
+              {t(`games.${game.id}.title`, { defaultValue: game.title })}
+            </h1>
+            <p className="text-muted-foreground">
+              {t(`games.${game.id}.description`, {
+                defaultValue: game.description,
+              })}
+            </p>
           </div>
         </div>
         

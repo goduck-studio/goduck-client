@@ -1,0 +1,40 @@
+{
+  "common": {
+    "gameList": "Back to Game List",
+    "clickToStart": "Click to start game",
+    "noGames": "No games available.",
+    "retry": "Retry",
+    "loading": "Loading",
+    "ready": "Game is ready.",
+    "error": "An error occurred while loading the game."
+  },
+  "home": {
+    "title": "GODUCK",
+    "subtitle": "Play Unity games in your web browser"
+  },
+  "game": {
+    "title": "Unity Game",
+    "loading": "Loading... {progress}%",
+    "error": "An error occurred while loading the game.",
+    "ready": "Game is ready.",
+    "loadError": "Failed to load game.",
+    "scriptLoadError": "Unable to load Unity loader script.",
+    "scriptLoadErrorDetails": "Attempted URL: {url}",
+    "scriptLoadErrorCauses": "Possible causes:\n1. Incorrect file path\n2. CORS policy issue\n3. File does not exist\n\nCheck the Network tab in your browser's developer tools to see the file request status.",
+    "fileCheck": "Please check that game files are correctly placed in the public/game/GODUCK folder.",
+    "requiredFiles": "Required files: Build/GODUCK.loader.js, Build/GODUCK.framework.js.unityweb, Build/GODUCK.wasm.unityweb, Build/GODUCK.data.unityweb",
+    "consoleCheck": "Check the browser console for details.",
+    "cannotLoad": "Unable to load game.",
+    "loaderNotFound": "createUnityInstance function not found. Unity loader script may not have loaded correctly.",
+    "canvasNotFound": "Canvas element not found.",
+    "canvasNotConnected": "Canvas element is not connected to the DOM.",
+    "domError": "DOM manipulation error: Unity loader could not find DOM element. This may be a conflict between React's virtual DOM and Unity loader. Original error: {error}"
+  },
+  "games": {
+    "goduck": {
+      "title": "GODUCK",
+      "description": "GODUCK game developed with Unity"
+    }
+  }
+}
+

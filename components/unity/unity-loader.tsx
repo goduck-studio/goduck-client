@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 interface UnityBuildConfig {
   buildName?: string;
@@ -78,6 +79,7 @@ export function UnityLoader({
   height = 600,
   className,
 }: UnityLoaderProps) {
+  const t = useTranslations();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -141,16 +143,14 @@ export function UnityLoader({
             });
 
             if (!window.createUnityInstance) {
-              throw new Error(
-                "createUnityInstance 함수를 찾을 수 없습니다. Unity 로더 스크립트가 제대로 로드되지 않았을 수 있습니다."
-              );
+              throw new Error(t("game.loaderNotFound"));
             }
             if (!canvasRef.current) {
-              throw new Error("Canvas 요소를 찾을 수 없습니다.");
+              throw new Error(t("game.canvasNotFound"));
             }
 
             if (!canvasRef.current.isConnected) {
-              throw new Error("Canvas 요소가 DOM에 연결되지 않았습니다.");
+              throw new Error(t("game.canvasNotConnected"));
             }
 
             const buildPath = `${buildUrl}/${buildFolder}`;
@@ -237,9 +237,7 @@ export function UnityLoader({
                 unityError.message.includes("querySelector")
               ) {
                 throw new Error(
-                  `DOM 조작 오류: Unity 로더가 DOM 요소를 찾지 못했습니다. ` +
-                    `이는 React의 가상 DOM과 Unity 로더의 충돌일 수 있습니다. ` +
-                    `원본 에러: ${unityError.message}`
+                  t("game.domError", { error: unityError.message })
                 );
               }
               throw unityError;
@@ -247,24 +245,25 @@ export function UnityLoader({
           } catch (err) {
             const errorMessage =
               err instanceof Error
-                ? `${err.message}\n\n상세 정보는 브라우저 콘솔을 확인하세요.`
-                : "게임 로드에 실패했습니다.\n\n상세 정보는 브라우저 콘솔을 확인하세요.";
+                ? `${err.message}\n\n${t("game.consoleCheck")}`
+                : `${t("game.loadError")}\n\n${t("game.consoleCheck")}`;
             setError(errorMessage);
             setIsLoading(false);
           }
         };
 
         script.onerror = () => {
-          const errorMsg = `Unity 로더 스크립트를 로드할 수 없습니다.\n\n시도한 URL: ${loaderUrl}\n\n가능한 원인:\n1. 파일 경로가 잘못되었습니다\n2. CORS 정책 문제입니다\n3. 파일이 존재하지 않습니다\n\n브라우저 개발자 도구의 Network 탭에서 파일 요청 상태를 확인하세요.`;
+          const errorMsg = `${t("game.scriptLoadError")}\n\n${t(
+            "game.scriptLoadErrorDetails",
+            { url: loaderUrl }
+          )}\n\n${t("game.scriptLoadErrorCauses")}`;
           setError(errorMsg);
           setIsLoading(false);
         };
 
         document.body.appendChild(script);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "게임을 로드할 수 없습니다."
-        );
+        setError(err instanceof Error ? err.message : t("game.cannotLoad"));
         setIsLoading(false);
       }
     };
@@ -281,7 +280,7 @@ export function UnityLoader({
         } catch {}
       }
     };
-  }, [buildUrl, buildFolder, buildName]);
+  }, [buildUrl, buildFolder, buildName, t]);
 
   const handleRetry = () => {
     setError(null);
@@ -293,11 +292,11 @@ export function UnityLoader({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Unity 게임</CardTitle>
+        <CardTitle>{t("game.title")}</CardTitle>
         <CardDescription>
-          {isLoading && `로딩 중... ${progress}%`}
-          {error && "게임을 로드하는 중 오류가 발생했습니다."}
-          {isReady && "게임이 준비되었습니다."}
+          {isLoading && t("game.loading", { progress })}
+          {error && t("game.error")}
+          {isReady && t("game.ready")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -311,7 +310,7 @@ export function UnityLoader({
               <div className="mb-4">
                 <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
-              <p className="text-sm">로딩 중... {progress}%</p>
+              <p className="text-sm">{t("game.loading", { progress })}</p>
             </div>
           )}
           {error && (
@@ -322,15 +321,12 @@ export function UnityLoader({
                 variant="outline"
                 className="bg-white text-black hover:bg-gray-200"
               >
-                다시 시도
+                {t("common.retry")}
               </Button>
               <p className="text-xs mt-4 text-gray-400 text-center">
-                게임 파일을 public/game/GODUCK 폴더에 올바르게 배치했는지
-                확인하세요.
+                {t("game.fileCheck")}
                 <br />
-                필요한 파일: Build/GODUCK.loader.js,
-                Build/GODUCK.framework.js.unityweb, Build/GODUCK.wasm.unityweb,
-                Build/GODUCK.data.unityweb
+                {t("game.requiredFiles")}
               </p>
             </div>
           )}
