@@ -56,6 +56,40 @@ type CreateUnityInstance = (
   onProgress?: UnityProgressCallback
 ) => Promise<UnityInstance>;
 
+interface DocumentWithFullscreen extends Document {
+  webkitFullscreenElement?: Element | null;
+  mozFullScreenElement?: Element | null;
+  msFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void>;
+  mozCancelFullScreen?: () => Promise<void>;
+  msExitFullscreen?: () => Promise<void>;
+}
+
+interface HTMLElementWithFullscreen extends HTMLElement {
+  webkitRequestFullscreen?: () => Promise<void>;
+  mozRequestFullScreen?: () => Promise<void>;
+  msRequestFullscreen?: () => Promise<void>;
+}
+
+interface ScreenOrientationWithLock {
+  lock: (
+    orientation:
+      | "portrait"
+      | "landscape"
+      | "portrait-primary"
+      | "portrait-secondary"
+      | "landscape-primary"
+      | "landscape-secondary"
+      | "natural"
+      | "any"
+  ) => Promise<void>;
+  unlock: () => void;
+}
+
+interface ScreenWithOrientation {
+  orientation?: ScreenOrientation & Partial<ScreenOrientationWithLock>;
+}
+
 declare global {
   interface Window {
     createUnityInstance?: CreateUnityInstance;
@@ -284,6 +318,17 @@ export function UnityLoader({
     };
   }, [buildUrl, buildFolder, buildName, t]);
 
+  const getFullscreenElement = (): Element | null => {
+    const doc = document as DocumentWithFullscreen;
+    return (
+      document.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement ||
+      null
+    );
+  };
+
   const handleRetry = () => {
     setError(null);
     setProgress(0);
@@ -291,60 +336,84 @@ export function UnityLoader({
     window.location.reload();
   };
 
+  const requestFullscreen = async (element: HTMLElement): Promise<void> => {
+    const el = element as HTMLElementWithFullscreen;
+
+    if (element.requestFullscreen) {
+      await element.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+    } else if (el.mozRequestFullScreen) {
+      await el.mozRequestFullScreen();
+    } else if (el.msRequestFullscreen) {
+      await el.msRequestFullscreen();
+    } else {
+      throw new Error("전체화면 API를 지원하지 않는 브라우저입니다.");
+    }
+  };
+
+  const exitFullscreen = async (): Promise<void> => {
+    const doc = document as DocumentWithFullscreen;
+
+    if (document.exitFullscreen) {
+      await document.exitFullscreen();
+    } else if (doc.webkitExitFullscreen) {
+      await doc.webkitExitFullscreen();
+    } else if (doc.mozCancelFullScreen) {
+      await doc.mozCancelFullScreen();
+    } else if (doc.msExitFullscreen) {
+      await doc.msExitFullscreen();
+    }
+  };
+
   const handleFullscreen = async () => {
     if (!containerRef.current) return;
 
     try {
-      if (!document.fullscreenElement) {
-        await containerRef.current.requestFullscreen();
+      const isFullscreen = !!getFullscreenElement();
+
+      if (!isFullscreen) {
+        await requestFullscreen(containerRef.current);
 
         // 전체화면이 완전히 활성화된 후 가로 방향으로 잠금
         setTimeout(async () => {
-          if (
-            screen.orientation &&
-            "lock" in screen.orientation &&
-            typeof (
-              screen.orientation as {
-                lock: (orientation: string) => Promise<void>;
-              }
-            ).lock === "function"
-          ) {
+          const screenWithOrientation = screen as ScreenWithOrientation;
+          const orientation = screenWithOrientation.orientation;
+
+          if (orientation && orientation.lock) {
             try {
-              await (
-                screen.orientation as {
-                  lock: (orientation: string) => Promise<void>;
-                }
-              ).lock("landscape");
+              await orientation.lock("landscape");
             } catch {
               // 화면 방향 잠금 실패는 무시 (일부 브라우저/기기에서 지원하지 않음)
               // iOS Safari 등에서는 사용자가 수동으로 화면을 돌려야 할 수 있음
             }
           }
-        }, 100);
+        }, 300);
       } else {
         // 전체화면 종료 시 방향 잠금 해제
-        if (
-          screen.orientation &&
-          "unlock" in screen.orientation &&
-          typeof (screen.orientation as { unlock: () => void }).unlock ===
-            "function"
-        ) {
+        const screenWithOrientation = screen as ScreenWithOrientation;
+        const orientation = screenWithOrientation.orientation;
+
+        if (orientation && orientation.unlock) {
           try {
-            (screen.orientation as { unlock: () => void }).unlock();
+            orientation.unlock();
           } catch {
             // 방향 잠금 해제 실패는 무시
           }
         }
-        await document.exitFullscreen();
+        await exitFullscreen();
       }
-    } catch {
-      // 전체화면 오류는 무시
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "전체화면 전환에 실패했습니다.";
+      setError(errorMessage);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!getFullscreenElement());
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
