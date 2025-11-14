@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -120,6 +120,7 @@ export function UnityLoader({
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showRotateMessage, setShowRotateMessage] = useState(false);
   const unityInstanceRef = useRef<UnityInstance | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -366,6 +367,31 @@ export function UnityLoader({
     }
   };
 
+  const isIOS = (): boolean => {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  };
+
+  const checkOrientation = useCallback((): void => {
+    const screenWithOrientation = screen as ScreenWithOrientation;
+    const orientation = screenWithOrientation.orientation;
+
+    if (orientation) {
+      const isLandscape =
+        orientation.angle === 90 ||
+        orientation.angle === 270 ||
+        orientation.type?.includes("landscape");
+
+      if (!isLandscape && isFullscreen) {
+        setShowRotateMessage(true);
+      } else {
+        setShowRotateMessage(false);
+      }
+    }
+  }, [isFullscreen]);
+
   const handleFullscreen = async () => {
     if (!containerRef.current) return;
 
@@ -383,9 +409,23 @@ export function UnityLoader({
           if (orientation && orientation.lock) {
             try {
               await orientation.lock("landscape");
+              setShowRotateMessage(false);
             } catch {
-              // 화면 방향 잠금 실패는 무시 (일부 브라우저/기기에서 지원하지 않음)
-              // iOS Safari 등에서는 사용자가 수동으로 화면을 돌려야 할 수 있음
+              // 화면 방향 잠금 실패 시 (iOS 등)
+              // 가로 모드로 돌리라는 메시지 표시
+              const ios = isIOS();
+              if (ios) {
+                setShowRotateMessage(true);
+                // 5초 후 메시지 자동 숨김
+                setTimeout(() => setShowRotateMessage(false), 5000);
+              }
+            }
+          } else {
+            // Screen Orientation API를 지원하지 않는 경우
+            const ios = isIOS();
+            if (ios) {
+              setShowRotateMessage(true);
+              setTimeout(() => setShowRotateMessage(false), 5000);
             }
           }
         }, 300);
@@ -401,6 +441,7 @@ export function UnityLoader({
             // 방향 잠금 해제 실패는 무시
           }
         }
+        setShowRotateMessage(false);
         await exitFullscreen();
       }
     } catch (err) {
@@ -410,6 +451,29 @@ export function UnityLoader({
       setTimeout(() => setError(null), 3000);
     }
   };
+
+  useEffect(() => {
+    if (isFullscreen) {
+      checkOrientation();
+
+      const screenWithOrientation = screen as ScreenWithOrientation;
+      const orientation = screenWithOrientation.orientation;
+
+      if (orientation) {
+        const handleOrientationChange = () => {
+          checkOrientation();
+        };
+
+        orientation.addEventListener("change", handleOrientationChange);
+
+        return () => {
+          orientation.removeEventListener("change", handleOrientationChange);
+        };
+      }
+    } else {
+      setShowRotateMessage(false);
+    }
+  }, [isFullscreen, checkOrientation]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -538,6 +602,33 @@ export function UnityLoader({
                 {t("game.fileCheck")}
                 <br />
                 {t("game.requiredFiles")}
+              </p>
+            </div>
+          )}
+          {showRotateMessage && isFullscreen && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 text-white z-20 p-4 animate-pulse">
+              <div className="mb-4">
+                <svg
+                  className="w-16 h-16 sm:w-20 sm:h-20 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </div>
+              <p className="text-base sm:text-lg font-semibold text-center mb-2">
+                {isIOS()
+                  ? t("game.rotateToLandscapeIOS")
+                  : t("game.rotateToLandscape")}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-300 text-center">
+                {t("game.rotateToLandscape")}
               </p>
             </div>
           )}

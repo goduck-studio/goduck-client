@@ -30,7 +30,9 @@
     "canvasNotConnected": "Canvas element is not connected to the DOM.",
     "domError": "DOM manipulation error: Unity loader could not find DOM element. This may be a conflict between React's virtual DOM and Unity loader. Original error: {error}",
     "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit Fullscreen"
+    "exitFullscreen": "Exit Fullscreen",
+    "rotateToLandscape": "Please rotate your device to landscape mode",
+    "rotateToLandscapeIOS": "Please rotate your device to landscape"
   },
   "games": {
     "goduck": {
