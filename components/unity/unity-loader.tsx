@@ -398,6 +398,28 @@ export function UnityLoader({
       } else {
         setShowRotateMessage(false);
       }
+    } else {
+      // Screen Orientation API가 없는 경우 window 크기로 판단
+      const isLandscape = window.innerWidth > window.innerHeight;
+      if (!isLandscape && isFullscreen) {
+        setShowRotateMessage(true);
+      } else {
+        setShowRotateMessage(false);
+      }
+    }
+
+    // Unity canvas 크기 조정
+    if (canvasRef.current && unityInstanceRef.current && isFullscreen) {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (container) {
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // Unity canvas의 크기를 container에 맞게 조정
+        canvas.style.width = `${containerWidth}px`;
+        canvas.style.height = `${containerHeight}px`;
+      }
     }
   }, [isFullscreen]);
 
@@ -476,17 +498,27 @@ export function UnityLoader({
       const screenWithOrientation = screen as ScreenWithOrientation;
       const orientation = screenWithOrientation.orientation;
 
+      const handleOrientationChange = () => {
+        checkOrientation();
+      };
+
+      const handleResize = () => {
+        checkOrientation();
+      };
+
       if (orientation) {
-        const handleOrientationChange = () => {
-          checkOrientation();
-        };
-
         orientation.addEventListener("change", handleOrientationChange);
-
-        return () => {
-          orientation.removeEventListener("change", handleOrientationChange);
-        };
       }
+      window.addEventListener("resize", handleResize);
+      window.addEventListener("orientationchange", handleResize);
+
+      return () => {
+        if (orientation) {
+          orientation.removeEventListener("change", handleOrientationChange);
+        }
+        window.removeEventListener("resize", handleResize);
+        window.removeEventListener("orientationchange", handleResize);
+      };
     } else {
       setShowRotateMessage(false);
     }
@@ -590,14 +622,14 @@ export function UnityLoader({
           id="unity-container"
           className={`relative bg-black overflow-hidden w-full ${
             height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]"
-          } ${
-            isFullscreen
-              ? "fixed inset-0 z-50 rounded-none h-screen w-screen"
-              : "rounded-lg"
-          }`}
+          } ${isFullscreen ? "fixed inset-0 z-50 rounded-none" : "rounded-lg"}`}
           style={{
             width: isFullscreen ? "100vw" : width,
             height: isFullscreen ? "100vh" : height || undefined,
+            maxWidth: isFullscreen ? "100vw" : undefined,
+            maxHeight: isFullscreen ? "100vh" : undefined,
+            minWidth: isFullscreen ? "100vw" : undefined,
+            minHeight: isFullscreen ? "100vh" : undefined,
           }}
         >
           {isLoading && (
@@ -662,8 +694,14 @@ export function UnityLoader({
             width={1280}
             height={720}
             tabIndex={-1}
-            className="w-full h-full"
-            style={{ display: isReady && !error ? "block" : "none" }}
+            className="w-full h-full object-contain"
+            style={{
+              display: isReady && !error ? "block" : "none",
+              width: isFullscreen ? "100%" : "100%",
+              height: isFullscreen ? "100%" : "100%",
+              maxWidth: "100%",
+              maxHeight: "100%",
+            }}
           />
           <div id="unity-loading-bar" style={{ display: "none" }}>
             <div id="unity-logo"></div>
