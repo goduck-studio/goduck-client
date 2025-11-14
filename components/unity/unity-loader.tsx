@@ -397,6 +397,12 @@ export function UnityLoader({
         setShowRotateMessage(true);
       } else {
         setShowRotateMessage(false);
+        // 가로 모드로 전환되면 포커스 유지
+        if (isFullscreen && canvasRef.current) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 100);
+        }
       }
     } else {
       // Screen Orientation API가 없는 경우 window 크기로 판단
@@ -405,6 +411,12 @@ export function UnityLoader({
         setShowRotateMessage(true);
       } else {
         setShowRotateMessage(false);
+        // 가로 모드로 전환되면 포커스 유지
+        if (isFullscreen && canvasRef.current) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 100);
+        }
       }
     }
 
@@ -495,15 +507,34 @@ export function UnityLoader({
     if (isFullscreen) {
       checkOrientation();
 
+      // 전체화면 모드 진입 시 포커스 설정
+      if (canvasRef.current) {
+        setTimeout(() => {
+          canvasRef.current?.focus();
+        }, 200);
+      }
+
       const screenWithOrientation = screen as ScreenWithOrientation;
       const orientation = screenWithOrientation.orientation;
 
       const handleOrientationChange = () => {
         checkOrientation();
+        // 방향 변경 시 포커스 재설정
+        if (canvasRef.current) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 300);
+        }
       };
 
       const handleResize = () => {
         checkOrientation();
+        // 리사이즈 시 포커스 재설정
+        if (canvasRef.current && isFullscreen) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 100);
+        }
       };
 
       if (orientation) {
@@ -512,12 +543,43 @@ export function UnityLoader({
       window.addEventListener("resize", handleResize);
       window.addEventListener("orientationchange", handleResize);
 
+      // 포커스가 다른 곳으로 이동하면 canvas로 다시 포커스
+      const handleFocus = () => {
+        if (
+          isFullscreen &&
+          canvasRef.current &&
+          document.activeElement !== canvasRef.current
+        ) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 50);
+        }
+      };
+
+      const handleBlur = () => {
+        if (isFullscreen && canvasRef.current) {
+          setTimeout(() => {
+            canvasRef.current?.focus();
+          }, 100);
+        }
+      };
+
+      window.addEventListener("focus", handleFocus);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.addEventListener("blur", handleBlur);
+      }
+
       return () => {
         if (orientation) {
           orientation.removeEventListener("change", handleOrientationChange);
         }
         window.removeEventListener("resize", handleResize);
         window.removeEventListener("orientationchange", handleResize);
+        window.removeEventListener("focus", handleFocus);
+        if (canvas) {
+          canvas.removeEventListener("blur", handleBlur);
+        }
       };
     } else {
       setShowRotateMessage(false);
@@ -723,14 +785,24 @@ export function UnityLoader({
             ref={canvasRef}
             width={1280}
             height={720}
-            tabIndex={-1}
-            className="w-full h-full object-contain"
+            tabIndex={isFullscreen ? 0 : -1}
+            className="w-full h-full object-contain outline-none"
             style={{
               display: isReady && !error ? "block" : "none",
               width: isFullscreen ? "100%" : "100%",
               height: isFullscreen ? "100%" : "100%",
               maxWidth: "100%",
               maxHeight: "100%",
+            }}
+            onMouseDown={(e) => {
+              if (isFullscreen) {
+                e.currentTarget.focus();
+              }
+            }}
+            onTouchStart={(e) => {
+              if (isFullscreen) {
+                e.currentTarget.focus();
+              }
             }}
           />
           <div id="unity-loading-bar" style={{ display: "none" }}>
