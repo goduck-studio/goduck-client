@@ -28,7 +28,9 @@
     "loaderNotFound": "createUnityInstance function not found. Unity loader script may not have loaded correctly.",
     "canvasNotFound": "Canvas element not found.",
     "canvasNotConnected": "Canvas element is not connected to the DOM.",
-    "domError": "DOM manipulation error: Unity loader could not find DOM element. This may be a conflict between React's virtual DOM and Unity loader. Original error: {error}"
+    "domError": "DOM manipulation error: Unity loader could not find DOM element. This may be a conflict between React's virtual DOM and Unity loader. Original error: {error}",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen"
   },
   "games": {
     "goduck": {

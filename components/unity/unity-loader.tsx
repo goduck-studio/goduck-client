@@ -85,7 +85,9 @@ export function UnityLoader({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const unityInstanceRef = useRef<UnityInstance | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let script: HTMLScriptElement | null = null;
@@ -289,22 +291,156 @@ export function UnityLoader({
     window.location.reload();
   };
 
+  const handleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+
+        // 전체화면이 완전히 활성화된 후 가로 방향으로 잠금
+        setTimeout(async () => {
+          if (
+            screen.orientation &&
+            "lock" in screen.orientation &&
+            typeof (
+              screen.orientation as {
+                lock: (orientation: string) => Promise<void>;
+              }
+            ).lock === "function"
+          ) {
+            try {
+              await (
+                screen.orientation as {
+                  lock: (orientation: string) => Promise<void>;
+                }
+              ).lock("landscape");
+            } catch {
+              // 화면 방향 잠금 실패는 무시 (일부 브라우저/기기에서 지원하지 않음)
+              // iOS Safari 등에서는 사용자가 수동으로 화면을 돌려야 할 수 있음
+            }
+          }
+        }, 100);
+      } else {
+        // 전체화면 종료 시 방향 잠금 해제
+        if (
+          screen.orientation &&
+          "unlock" in screen.orientation &&
+          typeof (screen.orientation as { unlock: () => void }).unlock ===
+            "function"
+        ) {
+          try {
+            (screen.orientation as { unlock: () => void }).unlock();
+          } catch {
+            // 방향 잠금 해제 실패는 무시
+          }
+        }
+        await document.exitFullscreen();
+      }
+    } catch {
+      // 전체화면 오류는 무시
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange
+      );
+    };
+  }, []);
+
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>{t("game.title")}</CardTitle>
-        <CardDescription>
-          {isLoading && t("game.loading", { progress })}
-          {error && t("game.error")}
-          {isReady && t("game.ready")}
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+          <div className="flex-1">
+            <CardTitle>{t("game.title")}</CardTitle>
+            <CardDescription>
+              {isLoading && t("game.loading", { progress })}
+              {error && t("game.error")}
+              {isReady && t("game.ready")}
+            </CardDescription>
+          </div>
+          {!isLoading && (
+            <Button
+              onClick={handleFullscreen}
+              variant="outline"
+              size="sm"
+              className="self-start sm:self-auto shrink-0"
+              disabled={!!error}
+            >
+              {isFullscreen ? (
+                <>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {t("game.exitFullscreen")}
+                  </span>
+                  <span className="sm:hidden">종료</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">
+                    {t("game.fullscreen")}
+                  </span>
+                  <span className="sm:hidden">전체</span>
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div
+          ref={containerRef}
           id="unity-container"
           className={`relative bg-black rounded-lg overflow-hidden w-full ${
             height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]"
-          }`}
+          } ${isFullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}
           style={{ width, ...(height ? { height } : {}) }}
         >
           {isLoading && (
