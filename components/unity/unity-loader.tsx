@@ -302,28 +302,34 @@ export function UnityLoader({
       <CardContent>
         <div
           id="unity-container"
-          className="relative bg-black rounded-lg overflow-hidden"
-          style={{ width, height }}
+          className={`relative bg-black rounded-lg overflow-hidden w-full ${
+            height ? "" : "h-[400px] sm:h-[500px] lg:h-[600px]"
+          }`}
+          style={{ width, ...(height ? { height } : {}) }}
         >
           {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10">
-              <div className="mb-4">
-                <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10 p-4">
+              <div className="mb-3 sm:mb-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
-              <p className="text-sm">{t("game.loading", { progress })}</p>
+              <p className="text-xs sm:text-sm">
+                {t("game.loading", { progress })}
+              </p>
             </div>
           )}
           {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10 p-4">
-              <p className="text-red-400 mb-4 text-center">{error}</p>
+              <p className="text-red-400 mb-3 sm:mb-4 text-center text-xs sm:text-sm px-2">
+                {error}
+              </p>
               <Button
                 onClick={handleRetry}
                 variant="outline"
-                className="bg-white text-black hover:bg-gray-200"
+                className="bg-white text-black hover:bg-gray-200 text-xs sm:text-sm"
               >
                 {t("common.retry")}
               </Button>
-              <p className="text-xs mt-4 text-gray-400 text-center">
+              <p className="text-[10px] sm:text-xs mt-3 sm:mt-4 text-gray-400 text-center px-2">
                 {t("game.fileCheck")}
                 <br />
                 {t("game.requiredFiles")}

@@ -20,36 +20,36 @@ export default async function GoduckGamePage({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-4 sm:mb-6">
           <Link href={`/${locale}`}>
-            <Button variant="outline" className="mb-4">
+            <Button
+              variant="outline"
+              className="mb-3 sm:mb-4 text-sm sm:text-base"
+            >
               ← {t("common.gameList")}
             </Button>
           </Link>
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
               {t(`games.${game.id}.title`, { defaultValue: game.title })}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {t(`games.${game.id}.description`, {
                 defaultValue: game.description,
               })}
             </p>
           </div>
         </div>
-        
-        <UnityLoader 
+
+        <UnityLoader
           buildUrl={game.buildUrl}
           buildFolder={game.buildFolder}
           buildName={game.buildName}
           width="100%"
-          height={600}
           className="max-w-6xl mx-auto"
         />
       </div>
     </div>
   );
 }
-
-
