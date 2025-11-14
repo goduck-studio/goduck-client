@@ -439,61 +439,72 @@ export function UnityLoader({
     if (!containerRef.current) return;
 
     try {
-      const isFullscreen = !!getFullscreenElement();
+      const systemFullscreen = !!getFullscreenElement();
+      const ios = isIOS();
 
+      // 전체화면 진입
       if (!isFullscreen) {
-        const fullscreenSupported = await requestFullscreen(
-          containerRef.current
-        );
-
-        // 전체화면 API를 지원하지 않는 경우에도 전체화면 모드로 전환
-        if (!fullscreenSupported) {
+        // iOS: Fullscreen API 대신 CSS 기반 "전체화면 모드"만 사용
+        if (ios) {
           setIsFullscreen(true);
-        }
+          checkOrientation();
+          setShowRotateMessage(true);
+          setTimeout(() => setShowRotateMessage(false), 4000);
+        } else {
+          const fullscreenSupported = await requestFullscreen(
+            containerRef.current
+          );
 
-        // 전체화면이 완전히 활성화된 후 가로 방향으로 잠금
-        setTimeout(async () => {
-          const screenWithOrientation = screen as ScreenWithOrientation;
-          const orientation = screenWithOrientation.orientation;
-
-          if (orientation && orientation.lock) {
-            try {
-              await orientation.lock("landscape");
-              setShowRotateMessage(false);
-            } catch {
-              // 화면 방향 잠금 실패 시 가로 모드로 돌리라는 메시지 표시
-              setShowRotateMessage(true);
-              // 5초 후 메시지 자동 숨김
-              setTimeout(() => setShowRotateMessage(false), 5000);
-            }
-          } else {
-            // Screen Orientation API를 지원하지 않는 경우
-            // 가로 모드인지 확인하고 메시지 표시
-            checkOrientation();
-            setShowRotateMessage(true);
-            setTimeout(() => setShowRotateMessage(false), 5000);
+          if (!fullscreenSupported) {
+            setIsFullscreen(true);
           }
-        }, 300);
+
+          // 전체화면이 완전히 활성화된 후 가로 방향으로 잠금 시도
+          setTimeout(async () => {
+            const screenWithOrientation = screen as ScreenWithOrientation;
+            const orientation = screenWithOrientation.orientation;
+
+            if (orientation && orientation.lock) {
+              try {
+                await orientation.lock("landscape");
+                setShowRotateMessage(false);
+              } catch {
+                setShowRotateMessage(true);
+                setTimeout(() => setShowRotateMessage(false), 4000);
+              }
+            } else {
+              checkOrientation();
+            }
+          }, 300);
+        }
       } else {
-        // 전체화면 종료 시 방향 잠금 해제
+        // 전체화면 종료
         const screenWithOrientation = screen as ScreenWithOrientation;
         const orientation = screenWithOrientation.orientation;
 
-        if (orientation && orientation.unlock) {
+        if (!ios && orientation && orientation.unlock) {
           try {
             orientation.unlock();
-          } catch {
-            // 방향 잠금 해제 실패는 무시
-          }
+          } catch {}
         }
+
         setShowRotateMessage(false);
 
-        // 전체화면 API를 지원하는 경우에만 exitFullscreen 호출
-        const fullscreenElement = getFullscreenElement();
-        if (fullscreenElement) {
-          await exitFullscreen();
-        } else {
+        // iOS: CSS 기반 전체화면만 사용하므로 상태만 원복
+        if (ios) {
           setIsFullscreen(false);
+          checkOrientation();
+        } else {
+          if (systemFullscreen) {
+            await exitFullscreen();
+          }
+          setIsFullscreen(false);
+          setTimeout(() => {
+            checkOrientation();
+            if (canvasRef.current) {
+              canvasRef.current.focus();
+            }
+          }, 200);
         }
       }
     } catch {
